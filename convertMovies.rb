@@ -1,13 +1,19 @@
 
+
+# Author: Erik
+
 require 'rubygems'
 require 'streamio-ffmpeg'
 require 'fileutils'
+require 'logger'
 
-directory=  '/home/eh/git/convertTo265/test'
+DIRECTORY=  '/home/eh/git/convertTo265/test'
 # "/mnt/nasData/movies"
 MIN_AGE_DAYS=0
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
-
+LOG_LOCATION = "#{ENV['HOME']}/HevcConversion.log"
+statusLogger=Logger.new(LOG_LOCATION)
+statusLogger.level=Logger::INFO
 
 
 def file_age(name)
@@ -48,6 +54,19 @@ def get_candidate_file(possibileFiles)
   return nil
 end
 
+def get_candidate_files(possibileFiles)
+  out=[]
+  possibileFiles.each do |file|
+    movie=FFMPEG::Movie.new(file)
+    if movie.valid? then
+      if movie.video_codec!="hevc" then
+        out<< file
+      end
+    end
+  end
+  return out
+end
+
 def convert_file(filename)
   video=FFMPEG::Movie.new(filename)
   options={
@@ -66,12 +85,16 @@ def convert_file(filename)
   end
 end
 
-possible_files=get_aged_files(directory)
+possible_files=get_aged_files(DIRECTORY)
+statusLogger.info "There are a total of #{possible_files.size} files that may need to be converted."
+statusLogger.debug "Files to be checked: #{possible_files}"
 
-candidate_file= get_candidate_file(possible_files)
+candidate_files= get_candidate_files(possible_files)
 
-while !candidate_file.nil? do
-  puts candidate_file
-  convert_file(candidate_file)
-  candidate_file= get_candidate_file(possible_files)
+statusLogger.info "There are a total of #{candidate_files.size} files that have not been converted yet."
+statusLogger.debug "Candidate Files that need to be re-encoded: #{possible_files}"
+
+candidate_files.each_with_index do |file,index|
+  statusLogger.info "Starting to transcode file #{index} of #{candidate_files.size}: #{file}"
+  convert_file(file)
 end
