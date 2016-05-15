@@ -87,6 +87,7 @@ end
 
 possible_files=get_aged_files(DIRECTORY)
 statusLogger.info "There are a total of #{possible_files.size} files that may need to be converted."
+
 statusLogger.debug "Files to be checked: #{possible_files}"
 
 candidate_files= get_candidate_files(possible_files)
@@ -95,6 +96,6 @@ statusLogger.info "There are a total of #{candidate_files.size} files that have 
 statusLogger.debug "Candidate Files that need to be re-encoded: #{possible_files}"
 
 candidate_files.each_with_index do |file,index|
-  statusLogger.info "Starting to transcode file #{index} of #{candidate_files.size}: #{file}"
+  statusLogger.info "Starting to transcode file #{index+1} of #{candidate_files.size}: #{file}"
   convert_file(file)
 end
