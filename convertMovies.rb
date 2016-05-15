@@ -13,7 +13,7 @@ DIRECTORY=  '/home/eh/git/convertTo265/test'
 MIN_AGE_DAYS=0
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 LOG_LOCATION = "#{ENV['HOME']}/HevcConversion.log"
-PRESET='ultrafast'
+PRESET='fast'
 statusLogger=Logger.new(LOG_LOCATION)
 statusLogger.level=Logger::INFO
 
@@ -68,7 +68,7 @@ def convert_file(video,filename)
   options={
     video_codec: 'libx265',
     threads: 3,
-    custom: "-preset #{PRESET} -c:a copy"
+    custom: "-preset #{PRESET} --tune fastdecode -crf 22 -c:a copy"
     }
   outFileName=File.join(
     File.dirname(filename),
