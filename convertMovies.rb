@@ -68,7 +68,7 @@ def convert_file(video,filename)
   options={
     video_codec: 'libx265',
     threads: 3,
-    custom: "-preset #{PRESET} --tune fastdecode -crf 22 -c:a copy"
+    custom: "-preset #{PRESET} -x265-params \"--tune fastdecode\" -crf 22 -c:a copy"
     }
   outFileName=File.join(
     File.dirname(filename),

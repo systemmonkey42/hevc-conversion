@@ -13,7 +13,7 @@ This is a long running ruby script, it makes calls to FFMPEG using a ruby gem to
 |MIN_AGE_DAYS| How long agos does the ctime on a file have to be to be considered.  This is useful when using flexget to orgonize your movies/series and a torrent client might still be seeding the file.  |
 |VID_FORMATS| Possible file endings to consider.  The current value should sufice for most use cases |
 |LOG_LOCATION|  This Script is designed to run deetached in the background.  As such the log location is the best way to figure out whatis going on and the status of the conversion|  
-| PRESET | used to trade off between final file size and transcoding time.|
+| PRESET | used to trade off between final file size, quality, and transcoding time. I recomend fast.|
 
 
 ## Logic
@@ -22,16 +22,14 @@ This is a long running ruby script, it makes calls to FFMPEG using a ruby gem to
 2. Go through that queue one item at a time and transcode that file to HEVC, keeping the audio track in place.  (May remove embeeded subtitles)
 3. Probably never finish, because lets face it, you have a lot of movies
 
+There are two important side effects of this.  The script is effecivaly stateless so nothing is stored between runs beyond the files themselves. And, the age of files is based on when the script starts, so that list will always be stale.  
 
-## Picking a transoding preset
+## Setup
 
-These tests were run on a directory with 1 720p live action movie, 1 720p animated movie, 1 SD animated TV show, and 1 SD live action TV show.  The origional size of the directory 1.7 GB.  All videos were encoded with h264.
-
-Please pick the file compression level right for you, as there is a trade off between time and space.
-
-| preset | Conversion Duration | Final Size | Daily Freed sapce |
-|--|--|--|--|
-|ultrafast| | | |
-|veryfast| | | |
-|fast| | | |
-|slow| | | |
+1. Instal Ruby 2.1.0+
+2. Install (ffmpeg)[https://ffmpeg.org/download.html] near version 2.5.10
+3. gem install 'streamio-ffmpeg'
+4. Optional: Install screen or tmux. This is to allow it to run in the background after closing SSH on a server.
+5. Edit the script.
+6. Run the script.
+7. Automate/cron?
