@@ -1,6 +1,6 @@
 # Convert videos to h265 (HEVC)
 
-So this is a simple ruby script that will chuch through a directory converting all of the videos to be h.265 in place.  This works by converting the video file to \*.tmp.mp4, and then moving it to its original file name with the mp4 extension.  It will delete the old version of the file.  
+So this is a simple ruby script that will chuch through a directory converting all of the videos to use h.265 or HEVC in place.  This works by converting the video file to \*.tmp.mp4, and then moving it to its original file name with the mp4 extension.  It will delete the old version of the file.  
 
 
 ## Usage
@@ -33,3 +33,7 @@ There are two important side effects of this.  The script is effecivaly stateles
 5. Edit the script.
 6. Run the script.
 7. Automate/cron?
+
+## Other info
+
+- This uses a turning setting that makes it slightly easier for decoders
