@@ -37,3 +37,8 @@ There are two important side effects of this.  The script is effecivaly stateles
 ## Other info
 
 - This uses a turning setting that makes it slightly easier for decoders
+
+## Disclaimers
+- Only use with videos you have the rights to copy
+- This will delete the original video, so use with care.  Test with a test directory before running on your entire library.  
+- Use a test file with all your media playing devices to ensure that they can handle HEVC encoding.  Raspberry pies, both 1 and 2 are not able to handle HEVC decoding.
