@@ -27,9 +27,9 @@ There are two important side effects of this.  The script is effecivaly stateles
 ## Setup
 
 1. Instal Ruby 2.1.0+
-2. Install (ffmpeg)[https://ffmpeg.org/download.html] near version 2.5.10
-3. gem install 'streamio-ffmpeg'
-4. Optional: Install screen or tmux. This is to allow it to run in the background after closing SSH on a server.
+2. Install (ffmpeg)[https://ffmpeg.org/download.html] near version 2.5.10.  `sudo apt-get install ffmpeg`
+3. gem install `streamio-ffmpeg`
+4. Optional: Install screen or tmux. This is to allow it to run in the background after closing SSH on a server.  
 5. Edit the script.
 6. Run the script.
 7. Automate/cron?

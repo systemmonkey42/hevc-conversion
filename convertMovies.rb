@@ -6,6 +6,7 @@ require 'rubygems'
 require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
+require ''
 
 DIRECTORY=  '/home/eh/git/convertTo265/test'
 
@@ -67,19 +68,27 @@ end
 def convert_file(video,filename)
   options={
     video_codec: 'libx265',
-    threads: 3,
-    custom: "-preset #{PRESET} -x265-params \"--tune fastdecode\" -crf 22 -c:a copy"
+    threads: 4,
+    custom: "-preset #{PRESET} -crf 18 -c:a copy"
     }
   outFileName=File.join(
     File.dirname(filename),
     "#{File.basename(filename,'.*')}")
   out=video.transcode("#{outFileName}.tmp.mp4",options)
-  FileUtils.mv("#{outFileName}.tmp.mp4","#{outFileName}.mp4")
-  if filename!="#{outFileName}.mp4" then
-    FileUtils.rm(filename)
+  if(out.size<video.size*0.9)
+    FileUtils.mv("#{outFileName}.tmp.mp4","#{outFileName}.mp4")
+    if filename!="#{outFileName}.mp4" then
+      FileUtils.rm(filename)
+    end
+    return out
+  else
+    statusLogger.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origional #{filename}"
+    #FileUtils.rm("#{outFileName}.tmp.mp4")
+    return video
   end
-  return out
 end
+
+
 
 possible_files=get_aged_files(DIRECTORY)
 statusLogger.info "There are a total of #{possible_files.size} files that may need to be converted."
