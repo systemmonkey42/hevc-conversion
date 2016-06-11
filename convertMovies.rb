@@ -6,7 +6,6 @@ require 'rubygems'
 require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
-require ''
 
 DIRECTORY=  '/home/eh/git/convertTo265/test'
 
@@ -14,9 +13,9 @@ DIRECTORY=  '/home/eh/git/convertTo265/test'
 MIN_AGE_DAYS=0
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 LOG_LOCATION = "#{ENV['HOME']}/HevcConversion.log"
-PRESET='fast'
-statusLogger=Logger.new(LOG_LOCATION)
-statusLogger.level=Logger::INFO
+PRESET='ultrafast'
+LOGGER=Logger.new(LOG_LOCATION)
+LOGGER.level=Logger::INFO
 
 
 def file_age(name)
@@ -53,68 +52,98 @@ def get_candidate_files(possibileFiles)
     runtime: 0
   }
   possibileFiles.each do |file|
-    movie=FFMPEG::Movie.new(file)
-    if movie.valid? then
-      if movie.video_codec!="hevc" then
-        out[:movies]<< file
-        out[:runtime]=out[:runtime]+movie.duration
-      end
+    if does_video_need_conversion?(file)
+      out[:movies]<< file
+      movie=FFMPEG::Movie.new(file)
+      out[:runtime]=out[:runtime]+movie.duration
     end
   end
-  out[:movies].sort!
+  out[:movies].shuffle!
   return out
 end
 
-def convert_file(video,filename)
+def does_video_need_conversion?(file)
+  movie=FFMPEG::Movie.new(file)
+  if movie.valid? then
+    if movie.video_codec!="hevc" then
+      unless File.exist?(get_temp_filename(file))
+        return true
+      end
+    end
+  end
+  return false
+end
+
+def get_base_name(file)
+  outFileName=File.join(
+    File.dirname(file),
+    "#{File.basename(file,'.*')}")
+end
+
+def get_temp_filename(file)
+  "#{File.join(
+    File.dirname(file),
+    ".#{File.basename(file,'.*')}")}.tmp.mp4"
+end
+
+def convert_file(original_video,filename)
   options={
     video_codec: 'libx265',
     threads: 4,
-    custom: "-preset #{PRESET} -crf 18 -c:a copy"
+    custom: "-preset #{PRESET} -crf 22 -c:a copy"
     }
-  outFileName=File.join(
-    File.dirname(filename),
-    "#{File.basename(filename,'.*')}")
-  out=video.transcode("#{outFileName}.tmp.mp4",options)
-  if(out.size<video.size*0.9)
-    FileUtils.mv("#{outFileName}.tmp.mp4","#{outFileName}.mp4")
+  outFileName = get_base_name(filename)
+  out = original_video.transcode(get_temp_filename(filename),options)
+  if(out.size<original_video.size*0.9)
+    FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
     if filename!="#{outFileName}.mp4" then
       FileUtils.rm(filename)
     end
     return out
   else
-    statusLogger.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origional #{filename}"
-    #FileUtils.rm("#{outFileName}.tmp.mp4")
-    return video
+    LOGGER.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origonal #{filename}"
+    FileUtils.rm(get_temp_filename(filename))
+    FileUtils.touch(get_temp_filename(filename))
+    return original_video
   end
 end
 
+@total_processing_time=0
+@processed_video_duration=0
+def iterate
+  possible_files=get_aged_files(DIRECTORY)
+  LOGGER.info "There are a total of #{possible_files.size} files that may need to be converted."
+
+  LOGGER.debug "Files to be checked: #{possible_files}"
+
+  candidate_files= get_candidate_files(possible_files)
+
+  LOGGER.info "There are a total of #{candidate_files[:movies].size} files that have not been converted yet."
+  LOGGER.debug "Candidate Files that need to be re-encoded: #{candidate_files}"
+  LOGGER.info "Total Duration: #{seconds_to_s(candidate_files[:runtime])}"
+  remaining_runtime=candidate_files[:runtime]
 
 
-possible_files=get_aged_files(DIRECTORY)
-statusLogger.info "There are a total of #{possible_files.size} files that may need to be converted."
-
-statusLogger.debug "Files to be checked: #{possible_files}"
-
-candidate_files= get_candidate_files(possible_files)
-
-statusLogger.info "There are a total of #{candidate_files[:movies].size} files that have not been converted yet."
-statusLogger.debug "Candidate Files that need to be re-encoded: #{candidate_files}"
-statusLogger.info "Total Duration: #{seconds_to_s(candidate_files[:runtime])}"
-remaining_runtime=candidate_files[:runtime]
-total_processing_time=0
-processed_video_duration=0
-
-candidate_files[:movies].each_with_index do |file,index|
-  statusLogger.info "Starting to transcode file #{index+1} of #{candidate_files[:movies].size}: #{file}"
-  startTime=Time.now
-  video=FFMPEG::Movie.new(file)
-  converted_video=convert_file(video,file)
-  duration=Time.now - startTime
-  remaining_runtime-=video.duration
-  if !converted_video.nil? then
-    total_processing_time+=duration
-    processed_video_duration+=video.duration
+  candidate_files[:movies].each_with_index do |file,index|
+    LOGGER.info "Starting to transcode file #{index+1} of #{candidate_files[:movies].size}: #{file}"
+    unless does_video_need_conversion?(file)
+      LOGGER.info "Video already converted, scanning again"
+      return true
+    end
+    startTime=Time.now
+    video=FFMPEG::Movie.new(file)
+    converted_video=convert_file(video,file)
+    duration=Time.now - startTime
+    remaining_runtime-=video.duration
+    if !converted_video.nil? then
+      @total_processing_time+=duration
+      @processed_video_duration+=video.duration
+    end
+    avg=@processed_video_duration/@total_processing_time
+    LOGGER.info "Average videotime/walltime: #{avg}  Estimated time remaining #{seconds_to_s(remaining_runtime/avg)}"
   end
-  avg=processed_video_duration/total_processing_time
-  statusLogger.info "Average videotime/walltime: #{avg}  Estimated time remaining #{seconds_to_s(remaining_runtime/avg)}"
+  return false
 end
+
+
+while iterate do end
