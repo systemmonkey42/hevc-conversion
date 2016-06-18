@@ -93,8 +93,11 @@ def convert_file(original_video,filename)
     custom: "-preset #{PRESET} -crf 22 -c:a copy"
     }
   outFileName = get_base_name(filename)
-  out = original_video.transcode(get_temp_filename(filename),options)
-  if(out.size<original_video.size*0.9)
+  begin
+    out = original_video.transcode(get_temp_filename(filename),options)
+  rescue
+  end
+  if(out && out.size<original_video.size*0.9)
     FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
     if filename!="#{outFileName}.mp4" then
       FileUtils.rm(filename)
