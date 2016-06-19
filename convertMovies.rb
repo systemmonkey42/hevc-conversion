@@ -1,5 +1,4 @@
 
-
 # Author: Erik
 
 require 'rubygems'
@@ -7,7 +6,7 @@ require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
 require 'yaml'
-
+require 'daemons'
 
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 
@@ -32,7 +31,7 @@ end
 def get_aged_files(directory)
   out=[]
   Dir.foreach(directory){|file|
-    next if file == '.' or file == '..'
+    next if file == '.' or file == '..' or file.start_with?('.')
     fileName=File.join(directory,file)
     if(File.file?(fileName)) then
       if VID_FORMATS.include? File.extname(file) then
@@ -163,5 +162,6 @@ def iterate
   return false
 end
 
-
-while iterate do end
+Daemons.run_proc('myproc.rb') do
+  while iterate do end
+end
