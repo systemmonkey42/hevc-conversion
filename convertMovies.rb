@@ -7,17 +7,18 @@ require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
 
-DIRECTORY=  '/home/eh/git/convertTo265/test'
 
-# "/mnt/nasData/movies"
-MIN_AGE_DAYS=0
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
-LOG_LOCATION = "#{ENV['HOME']}/HevcConversion.log"
-PRESET='ultrafast'
 
 
+@config={
+  min_age_days: 0,
+  directory: '/home/eh/git/convertTo265/test',
+  log_location: "#{ENV['HOME']}/HevcConversion.log",
+  preset: 'ultrafast'
+}
 
-@logger=Logger.new(LOG_LOCATION)
+@logger=Logger.new(@config[:log_location])
 @logger.level=Logger::INFO
 
 
@@ -37,7 +38,7 @@ def get_aged_files(directory)
     fileName=File.join(directory,file)
     if(File.file?(fileName)) then
       if VID_FORMATS.include? File.extname(file) then
-        if(file_age(fileName)>=MIN_AGE_DAYS) then
+        if(file_age(fileName)>=@config[:min_age_days]) then
           out<<fileName
         end
       end
@@ -93,7 +94,7 @@ def convert_file(original_video,filename)
   options={
     video_codec: 'libx265',
     threads: 4,
-    custom: "-preset #{PRESET} -crf 22 -c:a copy"
+    custom: "-preset #{@config[:preset]} -crf 22 -c:a copy"
     }
   outFileName = get_base_name(filename)
   error_thrown=nil
@@ -130,7 +131,7 @@ end
 @total_processing_time=0
 @processed_video_duration=0
 def iterate
-  possible_files=get_aged_files(DIRECTORY)
+  possible_files=get_aged_files(@config[:directory])
   @logger.info "There are a total of #{possible_files.size} files that may need to be converted."
 
   @logger.debug "Files to be checked: #{possible_files}"
