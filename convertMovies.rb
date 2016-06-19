@@ -14,8 +14,11 @@ MIN_AGE_DAYS=0
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 LOG_LOCATION = "#{ENV['HOME']}/HevcConversion.log"
 PRESET='ultrafast'
-LOGGER=Logger.new(LOG_LOCATION)
-LOGGER.level=Logger::INFO
+
+
+
+@logger=Logger.new(LOG_LOCATION)
+@logger.level=Logger::INFO
 
 
 def file_age(name)
@@ -106,14 +109,14 @@ def convert_file(original_video,filename)
     end
     return out
   elsif (out.size<original_video.size*0.9)
-    LOGGER.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origonal #{filename}"
+    @logger.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origonal #{filename}"
     FileUtils.rm(get_temp_filename(filename))
     FileUtils.touch(get_temp_filename(filename))
     File.write(get_temp_filename(filename), 'transcoded video not enough smaller than the origional.')
     return original_video
   else
-    LOGGER.error "A video file failed to transcode correctly"
-    LOGGER.error error_thrown
+    @logger.error "A video file failed to transcode correctly"
+    @logger.error error_thrown
     FileUtils.rm(get_temp_filename(filename))
     FileUtils.touch(get_temp_filename(filename))
     File.write(get_temp_filename(filename),
@@ -128,22 +131,22 @@ end
 @processed_video_duration=0
 def iterate
   possible_files=get_aged_files(DIRECTORY)
-  LOGGER.info "There are a total of #{possible_files.size} files that may need to be converted."
+  @logger.info "There are a total of #{possible_files.size} files that may need to be converted."
 
-  LOGGER.debug "Files to be checked: #{possible_files}"
+  @logger.debug "Files to be checked: #{possible_files}"
 
   candidate_files= get_candidate_files(possible_files)
 
-  LOGGER.info "There are a total of #{candidate_files[:movies].size} files that have not been converted yet."
-  LOGGER.debug "Candidate Files that need to be re-encoded: #{candidate_files}"
-  LOGGER.info "Total Duration: #{seconds_to_s(candidate_files[:runtime])}"
+  @logger.info "There are a total of #{candidate_files[:movies].size} files that have not been converted yet."
+  @logger.debug "Candidate Files that need to be re-encoded: #{candidate_files}"
+  @logger.info "Total Duration: #{seconds_to_s(candidate_files[:runtime])}"
   remaining_runtime=candidate_files[:runtime]
 
 
   candidate_files[:movies].each_with_index do |file,index|
-    LOGGER.info "Starting to transcode file #{index+1} of #{candidate_files[:movies].size}: #{file}"
+    @logger.info "Starting to transcode file #{index+1} of #{candidate_files[:movies].size}: #{file}"
     unless does_video_need_conversion?(file)
-      LOGGER.info "Video already converted, scanning again"
+      @logger.info "Video already converted, scanning again"
       return true
     end
     startTime=Time.now
@@ -156,7 +159,7 @@ def iterate
       @processed_video_duration+=video.duration
     end
     avg=@processed_video_duration/@total_processing_time
-    LOGGER.info "Average videotime/walltime: #{avg}  Estimated time remaining #{seconds_to_s(remaining_runtime/avg)}"
+    @logger.info "Average videotime/walltime: #{avg}  Estimated time remaining #{seconds_to_s(remaining_runtime/avg)}"
   end
   return false
 end
