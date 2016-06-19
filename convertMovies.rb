@@ -93,9 +93,11 @@ def convert_file(original_video,filename)
     custom: "-preset #{PRESET} -crf 22 -c:a copy"
     }
   outFileName = get_base_name(filename)
+  error_thrown=nil
   begin
     out = original_video.transcode(get_temp_filename(filename),options)
-  rescue
+  rescue StandardError => e
+    error_thrown=e
   end
   if(out && out.size<original_video.size*0.9)
     FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
@@ -103,11 +105,22 @@ def convert_file(original_video,filename)
       FileUtils.rm(filename)
     end
     return out
-  else
+  elsif (out.size<original_video.size*0.9)
     LOGGER.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origonal #{filename}"
     FileUtils.rm(get_temp_filename(filename))
     FileUtils.touch(get_temp_filename(filename))
+    File.write(get_temp_filename(filename), 'transcoded video not enough smaller than the origional.')
     return original_video
+  else
+    LOGGER.error "A video file failed to transcode correctly"
+    LOGGER.error error_thrown
+    FileUtils.rm(get_temp_filename(filename))
+    FileUtils.touch(get_temp_filename(filename))
+    File.write(get_temp_filename(filename),
+    [
+      'An exception occured while transocding this movie.',
+      error_thrown
+    ].join('\n'))
   end
 end
 
