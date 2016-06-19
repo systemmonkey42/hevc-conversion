@@ -6,21 +6,19 @@ require 'rubygems'
 require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
+require 'yaml'
 
 
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 
-
-@config={
-  min_age_days: 0,
-  directory: '/home/eh/git/convertTo265/test',
-  log_location: "#{ENV['HOME']}/HevcConversion.log",
-  preset: 'ultrafast'
-}
+@config=YAML.load(File.read("./config.yml"))
+puts @config
 
 @logger=Logger.new(@config[:log_location])
 @logger.level=Logger::INFO
 
+@logger.info "\n New Run starting now......"
+@logger.info "Config being used: #{@config}"
 
 def file_age(name)
   (Time.now - File.ctime(name))/(24*3600)

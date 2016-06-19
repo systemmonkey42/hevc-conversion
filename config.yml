@@ -1,0 +1,4 @@
+:min_age_days: 0
+:directory: /home/eh/git/convertTo265/test
+:log_location: /home/eh/HevcConversion.log
+:preset: ultrafast
