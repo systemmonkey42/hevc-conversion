@@ -5,38 +5,35 @@ So this is a simple ruby script that will chuch through a directory converting a
 
 ## Usage
 
-This is a long running ruby script, it makes calls to FFMPEG using a ruby gem to scrape metadata of videos, and transcode them.  It works by appling some simple filters to create a queue of videos that can be converted, and then works through that queue.  
+This is a long running ruby script, it makes calls to FFMPEG using a ruby gem to scrape metadata of videos, and transcode them.  It works by appling some simple filters to create a list of videos that can be converted, and then works through that queue.
+
+Move to the directory where the config is located and run: `ruby convertMovies.rb start`
+
+## Example Config
+Please note the preceding colons are important.  Also the file must be called config.yml
+
+```
+:min_age_days: 5
+:directory: /home/user/videos/movies
+:log_location: /home/user/logs/HevcConversion.log
+:preset: slow
+```
+
 
 |Constant| Description|
 |--|--|
-|DIRECTORY | the directory to recurse into.  All files will be considered within that directory. |
-|MIN_AGE_DAYS| How long agos does the ctime on a file have to be to be considered.  This is useful when using flexget to orgonize your movies/series and a torrent client might still be seeding the file.  |
-|VID_FORMATS| Possible file endings to consider.  The current value should sufice for most use cases |
-|LOG_LOCATION|  This Script is designed to run deetached in the background.  As such the log location is the best way to figure out whatis going on and the status of the conversion|  
-| PRESET | used to trade off between final file size, quality, and transcoding time. I recomend fast.|
+|directory | the directory to recurse into.  All files will be considered within that directory. |
+|min_age_days | How many days old does this file have to be to be considered for conversion.  |
+|log_location|  This Script is designed to run deetached in the background.  As such the log location is the best way to figure out whatis going on and the status of the conversion |  
+| preset | used to trade off between final file size, quality, and transcoding time. I recomend slow.  See ffmpeg docs for more detail. |
 
 
-## Logic
+## Coridnation
+When this script starts to convert a video, it creates a .filename.tmp.mp4 file that used the old files filename.  This acts as kind of a lock because the exitsance of that file is checked before conversion.  This also allows us to save state between runs without needing to share a database or other coridination servcie.  That file is left behind if, for any reason, the conversion fails, the process is stopped, or if afterthe conversion the new HEVC file is not at least 10% smaller than the origional.  The content is replace with an explination if possible.
 
-1. Create a queue of videos that are at least MIN_AGE_DAYS old, a video file, and not encoded with h265 or HEVC already.
-2. Go through that queue one item at a time and transcode that file to HEVC, keeping the audio track in place.  (May remove embeeded subtitles)
-3. Probably never finish, because lets face it, you have a lot of movies
+It also makes it so multiple computers can run this script, provided they are all run against the same backing file system (SMB, NFS, etc.).
 
-There are two important side effects of this.  The script is effecivaly stateless so nothing is stored between runs beyond the files themselves. And, the age of files is based on when the script starts, so that list will always be stale.  
 
-## Setup
-
-1. Instal Ruby 2.1.0+
-2. Install (ffmpeg)[https://ffmpeg.org/download.html] near version 2.5.10.  `sudo apt-get install ffmpeg`
-3. gem install `streamio-ffmpeg`
-4. Optional: Install screen or tmux. This is to allow it to run in the background after closing SSH on a server.  
-5. Edit the script.
-6. Run the script.
-7. Automate/cron?
-
-## Other info
-
-- This uses a turning setting that makes it slightly easier for decoders
 
 ## Disclaimers
 - Only use with videos you have the rights to copy
