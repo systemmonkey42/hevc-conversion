@@ -17,6 +17,7 @@ Please note the preceding colons are important.  Also the file must be called co
 :directory: /home/user/videos/movies
 :log_location: /home/user/logs/HevcConversion.log
 :preset: slow
+:max_new_file_size_ratio: 0.9
 ```
 
 
@@ -26,6 +27,7 @@ Please note the preceding colons are important.  Also the file must be called co
 |min_age_days | How many days old does this file have to be to be considered for conversion.  |
 |log_location|  This Script is designed to run deetached in the background.  As such the log location is the best way to figure out whatis going on and the status of the conversion |  
 | preset | used to trade off between final file size, quality, and transcoding time. I recomend slow.  See ffmpeg docs for more detail. |
+|max_new_file_size_ratio| Once transocing is finished, this script will make sure the output is smaller than the origional.  Spesifically new file size <= Old file size * this value.  Since transcoding always involves quality loss this value should be less than 1.0 |
 
 
 ## Coridnation

@@ -10,8 +10,7 @@ require 'daemons'
 
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 
-@config=YAML.load(File.read("./config.yml"))
-puts @config
+@config=YAML.load(File.read("./HevcConfig.yml"))
 
 @logger=Logger.new(@config[:log_location])
 @logger.level=Logger::INFO
@@ -100,19 +99,7 @@ def convert_file(original_video,filename)
   rescue StandardError => e
     error_thrown=e
   end
-  if(out && out.size<original_video.size*0.9)
-    FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
-    if filename!="#{outFileName}.mp4" then
-      FileUtils.rm(filename)
-    end
-    return out
-  elsif (out.size<original_video.size*0.9)
-    @logger.warn "A video file, after transcoding was not at least 90% the size of the origional.  Keeping origonal #{filename}"
-    FileUtils.rm(get_temp_filename(filename))
-    FileUtils.touch(get_temp_filename(filename))
-    File.write(get_temp_filename(filename), 'transcoded video not enough smaller than the origional.')
-    return original_video
-  else
+  if ( error_thrown )
     @logger.error "A video file failed to transcode correctly"
     @logger.error error_thrown
     FileUtils.rm(get_temp_filename(filename))
@@ -122,9 +109,29 @@ def convert_file(original_video,filename)
       'An exception occured while transocding this movie.',
       error_thrown
     ].join('\n'))
+  elsif (out.size<original_video.size*@config[:max_new_file_size_ratio])
+    @logger.warn "A video file, after transcoding was not at least #{@config[:max_new_file_size_ratio]} the size of the origional.  Keeping origonal #{filename}"
+    FileUtils.rm(get_temp_filename(filename))
+    FileUtils.touch(get_temp_filename(filename))
+    File.write(get_temp_filename(filename), 'transcoded video not enough smaller than the origional.')
+    return original_video
+  else
+    FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
+    if filename!="#{outFileName}.mp4" then
+      FileUtils.rm(filename)
+    end
+    return out
   end
 end
+def status(app)
+  possible_files=get_aged_files(@config[:directory])
+  puts "There are a total of #{possible_files.size} files that may need to be converted."
 
+  candidate_files= get_candidate_files(possible_files)
+
+  puts "There are a total of #{candidate_files[:movies].size} files that have not been converted yet."
+  puts "Total Duration: #{seconds_to_s(candidate_files[:runtime])}"
+end
 @total_processing_time=0
 @processed_video_duration=0
 def iterate
@@ -162,6 +169,4 @@ def iterate
   return false
 end
 
-Daemons.run_proc('myproc.rb') do
-  while iterate do end
-end
+while iterate do end

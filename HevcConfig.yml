@@ -2,3 +2,4 @@
 :directory: /home/eh/git/convertTo265/test
 :log_location: /home/eh/HevcConversion.log
 :preset: ultrafast
+:max_new_file_size_ratio: 0.9
