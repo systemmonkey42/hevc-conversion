@@ -6,7 +6,6 @@ require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
 require 'yaml'
-require 'daemons'
 
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 
