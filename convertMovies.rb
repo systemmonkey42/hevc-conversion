@@ -6,6 +6,7 @@ require 'streamio-ffmpeg'
 require 'fileutils'
 require 'logger'
 require 'yaml'
+require 'peach'
 
 VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 
@@ -50,13 +51,17 @@ def get_candidate_files(possibileFiles)
     movies: [],
     runtime: 0
   }
-  possibileFiles.each do |file|
+  times=[]
+  possibileFiles.peach(4) do |file|
     if does_video_need_conversion?(file)
-      out[:movies]<< file
+      out[:movies]<<file
       movie=FFMPEG::Movie.new(file)
-      out[:runtime]=out[:runtime]+movie.duration
+      times<<movie.duration
     end
   end
+  times.each{|time|
+    out[:runtime]=out[:runtime]+=time
+  }
   out[:movies].shuffle!
   return out
 end
@@ -85,34 +90,54 @@ def get_temp_filename(file)
     ".#{File.basename(file,'.*')}")}.tmp.mp4"
 end
 
+def safe_convert_file(original_video,filename)
+  begin
+    return convert_file(original_video,filename)
+  rescue StandardError => e
+    @logger.error "Problem processing a video",e
+  end
+  return nil
+end
+
 def convert_file(original_video,filename)
   options={
     video_codec: 'libx265',
-    threads: 4,
-    custom: "-preset #{@config[:preset]} -crf 22 -c:a copy"
+    threads: @config[:threads],
+    custom: "-preset #{@config[:preset]} -c:a copy".split
     }
   outFileName = get_base_name(filename)
   error_thrown=nil
   begin
-    out = original_video.transcode(get_temp_filename(filename),options)
+    startTime=Time.now
+    out = original_video.transcode(get_temp_filename(filename),options){ |progress|
+      duration=Time.now-startTime
+      remaining=(duration/progress)*(1-progress)
+      if(remaining>99999999) then
+        print "Progress converting #{filename.split('/').last} : #{(progress*100).round(1)}%                                  \r"
+      else
+        print "Progress converting #{filename.split('/').last} : #{(progress*100).round(1)}%  ETA is #{seconds_to_s(remaining)} \r"
+      end
+    }
   rescue StandardError => e
     error_thrown=e
+    puts e.to_s
   end
+  puts "Done with #{filename.split('\\').last}"
   if ( error_thrown )
     @logger.error "A video file failed to transcode correctly"
     @logger.error error_thrown
-    FileUtils.rm(get_temp_filename(filename))
+    FileUtils.rm(get_temp_filename(filename)) if File.exists?(get_temp_filename(filename))
     FileUtils.touch(get_temp_filename(filename))
     File.write(get_temp_filename(filename),
     [
       'An exception occured while transocding this movie.',
       error_thrown
     ].join('\n'))
-  elsif (out.size<original_video.size*@config[:max_new_file_size_ratio])
-    @logger.warn "A video file, after transcoding was not at least #{@config[:max_new_file_size_ratio]} the size of the origional.  Keeping origonal #{filename}"
+  elsif (out.size>original_video.size*@config[:max_new_file_size_ratio])
+    @logger.warn "A video file, after transcoding was not at least #{@config[:max_new_file_size_ratio]} the size of the origional (new: #{out.size} old: #{original_video.size}).  Keeping origonal #{filename}"
     FileUtils.rm(get_temp_filename(filename))
     FileUtils.touch(get_temp_filename(filename))
-    File.write(get_temp_filename(filename), 'transcoded video not enough smaller than the origional.')
+    File.write(get_temp_filename(filename), "transcoded video not enough smaller than the origional.")
     return original_video
   else
     FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
@@ -155,7 +180,7 @@ def iterate
     end
     startTime=Time.now
     video=FFMPEG::Movie.new(file)
-    converted_video=convert_file(video,file)
+    converted_video=safe_convert_file(video,file)
     duration=Time.now - startTime
     remaining_runtime-=video.duration
     if !converted_video.nil? then

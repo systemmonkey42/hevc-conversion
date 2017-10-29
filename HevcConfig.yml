@@ -1,5 +1,6 @@
 :min_age_days: 0
-:directory: /home/eh/git/convertTo265/test
-:log_location: /home/eh/HevcConversion.log
-:preset: ultrafast
+:directory: /run/user/1000/gvfs/smb-share:server=ubuntu-nas,share=datafolder/secureData/movies
+:log_location: /home/eh/git/hevc-conversion/log.log
+:preset: slower
+:threads: 8
 :max_new_file_size_ratio: 0.9
