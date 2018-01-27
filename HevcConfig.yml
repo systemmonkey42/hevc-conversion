@@ -1,6 +1,7 @@
 :min_age_days: 0
-:directory: /run/user/1000/gvfs/smb-share:server=ubuntu-nas,share=datafolder/secureData/movies
+:source_directory: ./test
+:dest_directory: ./dest
 :log_location: /home/eh/git/hevc-conversion/log.log
-:preset: slower
+:preset: ultrafast
 :threads: 8
 :max_new_file_size_ratio: 0.9

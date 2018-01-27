@@ -12,7 +12,7 @@ VID_FORMATS = %w[.avi .flv .mkv .mov .mp4]
 
 @config=YAML.load(File.read("./HevcConfig.yml"))
 
-@logger=Logger.new(@config[:log_location])
+@logger=Logger.new(STDOUT)
 @logger.level=Logger::INFO
 
 @logger.info "\n New Run starting now......"
@@ -70,7 +70,7 @@ def does_video_need_conversion?(file)
   movie=FFMPEG::Movie.new(file)
   if movie.valid? then
     if movie.video_codec!="hevc" then
-      unless File.exist?(get_temp_filename(file))
+      unless File.exist?(get_dest_filename(file))
         return true
       end
     end
@@ -84,17 +84,18 @@ def get_base_name(file)
     "#{File.basename(file,'.*')}")
 end
 
-def get_temp_filename(file)
+def get_dest_filename(file)
   "#{File.join(
-    File.dirname(file),
-    ".#{File.basename(file,'.*')}")}.tmp.mp4"
+    @config[:dest_directory],
+    "#{File.basename(file,'.*')}")}.mp4"
 end
 
 def safe_convert_file(original_video,filename)
   begin
     return convert_file(original_video,filename)
   rescue StandardError => e
-    @logger.error "Problem processing a video",e
+    @logger.error "Problem processing a video"
+    @logger.error e
   end
   return nil
 end
@@ -109,7 +110,7 @@ def convert_file(original_video,filename)
   error_thrown=nil
   begin
     startTime=Time.now
-    out = original_video.transcode(get_temp_filename(filename),options){ |progress|
+    out = original_video.transcode(get_dest_filename(filename),options){ |progress|
       duration=Time.now-startTime
       remaining=(duration/progress)*(1-progress)
       if(remaining>99999999) then
@@ -124,31 +125,21 @@ def convert_file(original_video,filename)
   end
   puts "Done with #{filename.split('\\').last}"
   if ( error_thrown )
-    @logger.error "A video file failed to transcode correctly"
+    @logger.error "A video file failed to transcode correctly, copying over origonal"
     @logger.error error_thrown
-    FileUtils.rm(get_temp_filename(filename)) if File.exists?(get_temp_filename(filename))
-    FileUtils.touch(get_temp_filename(filename))
-    File.write(get_temp_filename(filename),
-    [
-      'An exception occured while transocding this movie.',
-      error_thrown
-    ].join('\n'))
+    FileUtils.rm(get_dest_filename(filename)) if File.exists?(get_dest_filename(filename))
+    FileUtils.cp(filename,get_dest_filename(filename))
   elsif (out.size>original_video.size*@config[:max_new_file_size_ratio])
     @logger.warn "A video file, after transcoding was not at least #{@config[:max_new_file_size_ratio]} the size of the origional (new: #{out.size} old: #{original_video.size}).  Keeping origonal #{filename}"
-    FileUtils.rm(get_temp_filename(filename))
-    FileUtils.touch(get_temp_filename(filename))
-    File.write(get_temp_filename(filename), "transcoded video not enough smaller than the origional.")
+    FileUtils.rm(get_dest_filename(filename))
+    FileUtils.cp(filename,get_dest_filename(filename))
     return original_video
   else
-    FileUtils.mv(get_temp_filename(filename),"#{outFileName}.mp4")
-    if filename!="#{outFileName}.mp4" then
-      FileUtils.rm(filename)
-    end
     return out
   end
 end
 def status(app)
-  possible_files=get_aged_files(@config[:directory])
+  possible_files=get_aged_files(@config[:source_directory])
   puts "There are a total of #{possible_files.size} files that may need to be converted."
 
   candidate_files= get_candidate_files(possible_files)
@@ -159,7 +150,7 @@ end
 @total_processing_time=0
 @processed_video_duration=0
 def iterate
-  possible_files=get_aged_files(@config[:directory])
+  possible_files=get_aged_files(@config[:source_directory])
   @logger.info "There are a total of #{possible_files.size} files that may need to be converted."
 
   @logger.debug "Files to be checked: #{possible_files}"
